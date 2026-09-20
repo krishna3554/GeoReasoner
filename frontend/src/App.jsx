@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Sidebar from "./components/Sidebar";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -18,15 +19,18 @@ function App() {
 
         <main className="flex-1">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/map" element={<DisasterMap />} />
-            <Route path="/incidents" element={<Incidents />} />
-            <Route path="/damage-analysis" element={<DamageAnalysis />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/routes" element={<RoutesPage />} />
-            <Route path="/resources" element={<Resources />} />
-            <Route path="/protocols" element={<Protocols />} />
             <Route path="/login" element={<Login />} />
+
+              <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/map" element={<DisasterMap />} />
+                <Route path="/incidents" element={<Incidents />} />
+                <Route path="/damage-analysis" element={<DamageAnalysis />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/routes" element={<RoutesPage />} />
+                <Route path="/resources" element={<Resources />} />
+                <Route path="/protocols" element={<Protocols />} />
+              </Route>
           </Routes>
         </main>
       </div>

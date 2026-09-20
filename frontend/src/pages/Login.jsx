@@ -1,17 +1,29 @@
 import { useState } from "react";
 import { Shield, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { login } from "../api/auth";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e) => {
-    e.preventDefault();
+  const handleLogin = async (e) => {
+  e.preventDefault();
 
-    // Temporary frontend login
-    console.log("Login:", { email, password });
-  };
+  try {
+    const data = await login(email, password);
+
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    console.log("Login successful:", data.user);
+
+    window.location.href = "/";
+  } catch (error) {
+    console.error("Login error:", error);
+    alert(error.message || "Unable to connect to the server");
+  }
+};
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#020b13] px-4 text-white">
