@@ -19,6 +19,22 @@ export const getUsers = async () => {
   return data;
 };
 
+export const createUser = async (userData) => {
+  const response = await fetch(`${API_BASE_URL}/users`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(userData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to create user");
+  }
+
+  return data;
+};
+
 export const getUserById = async (id) => {
   const response = await fetch(`${API_BASE_URL}/users/${id}`, {
     headers: getAuthHeaders(),

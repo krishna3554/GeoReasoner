@@ -1,3 +1,4 @@
+import rolePermissions from "../config/rolePermissions";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -27,6 +28,7 @@ const items = [
 export default function Sidebar() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "null");
+  const allowedRoutes = rolePermissions[user?.role] || [];
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -47,7 +49,9 @@ export default function Sidebar() {
       </div>
 
       <nav className="mt-7 space-y-1">
-        {items.map(([name, path, Icon]) => (
+        {items
+        .filter(([, path]) => allowedRoutes.includes(path))
+        .map(([label, path, Icon]) => (
           <NavLink
             key={path}
             to={path}
@@ -60,7 +64,7 @@ export default function Sidebar() {
             }
           >
             <Icon size={19} />
-            {name}
+            {label}
           </NavLink>
         ))}
       </nav>

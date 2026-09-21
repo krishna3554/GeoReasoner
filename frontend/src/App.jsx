@@ -11,6 +11,7 @@ import RoutesPage from "./pages/Routes";
 import Resources from "./pages/Resources";
 import Protocols from "./pages/Protocols";
 import UserManagement from "./pages/UserManagement";
+import RoleProtectedRoute from "./components/RoleProtectedRoute";
 
 function App() {
   return (
@@ -23,15 +24,17 @@ function App() {
             <Route path="/login" element={<Login />} />
 
             <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/map" element={<DisasterMap />} />
-              <Route path="/incidents" element={<Incidents />} />
-              <Route path="/damage-analysis" element={<DamageAnalysis />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/routes" element={<RoutesPage />} />
-              <Route path="/resources" element={<Resources />} />
-              <Route path="/protocols" element={<Protocols />} />
-              <Route path="/users" element={<UserManagement />} />
+              <Route element={<RoleProtectedRoute />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/map" element={<DisasterMap />} />
+                <Route path="/incidents" element={<Incidents />} />
+                <Route path="/damage-analysis" element={<DamageAnalysis />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/routes" element={<RoutesPage />} />
+                <Route path="/resources" element={<Resources />} />
+                <Route path="/protocols" element={<Protocols />} />
+                <Route path="/users" element={<UserManagement />} />
+              </Route>
             </Route>
           </Routes>
         </main>

@@ -1,41 +1,74 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getUsers, updateUser, createUser } from "../api/users";
 import { Search, UserPlus, Pencil, UserCheck, UserX } from "lucide-react";
-const users = [
-  {
-    id: 1,
-    name: "GeoReasoner Administrator",
-    email: "admin@georeasoner.com",
-    role: "ADMIN",
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Response Officer",
-    email: "officer@georeasoner.com",
-    role: "RESPONSE_TEAM",
-    status: "Active",
-  },
-  {
-    id: 3,
-    name: "Data Analyst",
-    email: "analyst@georeasoner.com",
-    role: "ANALYST",
-    status: "Active",
-  },
-];
+
+
 
 export default function UserManagement() {
+
+    const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "VIEWER",
+    });
+
+    const [creatingUser, setCreatingUser] = useState(false);
 
     const [search, setSearch] = useState("");
     const [editingUser, setEditingUser] = useState(null);
     const [showAddUser, setShowAddUser] = useState(false);
-    const [userList, setUserList] = useState(users);
+    const [userList, setUserList] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+        try {
+        setLoading(true);
+
+        const data = await getUsers();
+
+        setUserList(data.users);
+        } catch (error) {
+        console.error("Failed to load users:", error);
+        setError(error.message || "Failed to load users");
+        } finally {
+        setLoading(false);
+        }
+    };
+
+    
+
+    fetchUsers();
+    }, []);
 
     const filteredUsers = userList.filter(
     (user) =>
         user.name.toLowerCase().includes(search.toLowerCase()) ||
         user.email.toLowerCase().includes(search.toLowerCase())
     );
+
+    const handleSaveUser = async () => {
+    try {
+        const data = await updateUser(editingUser.id, {
+        name: editingUser.name,
+        email: editingUser.email,
+        role: editingUser.role,
+        });
+
+        setUserList((currentUsers) =>
+        currentUsers.map((user) =>
+            user.id === editingUser.id ? data.user : user
+        )
+        );
+
+        setEditingUser(null);
+    } catch (error) {
+        console.error("Failed to update user:", error);
+        alert(error.message);
+    }
+    };
 
   return (
     <main className="min-h-screen bg-[#020b14] p-7 text-white">
@@ -119,20 +152,16 @@ export default function UserManagement() {
 
                 <td className="px-5 py-4">
                   <span
-                    className={`flex items-center gap-2 text-xs ${
-                        user.status === "Active"
-                        ? "text-emerald-400"
-                        : "text-red-400"
-                    }`}
+                        className={`flex items-center gap-2 text-xs ${
+                            user.is_active ? "text-emerald-400" : "text-red-400"
+                        }`}
                     >
                     <span
                         className={`h-2 w-2 rounded-full ${
-                        user.status === "Active"
-                            ? "bg-emerald-400"
-                            : "bg-red-400"
+                            user.is_active ? "bg-emerald-400" : "bg-red-400"
                         }`}
                     />
-                    {user.status}
+                    {user.is_active ? "Active" : "Inactive"}
                     </span>
                 </td>
 
@@ -148,15 +177,22 @@ export default function UserManagement() {
 
                     <button
                     title="Deactivate user"
-                    onClick={() =>
+                    onClick={async () => {
+                    try {
+                        const data = await updateUser(user.id, {
+                        is_active: false,
+                        });
+
                         setUserList((currentUsers) =>
                         currentUsers.map((item) =>
-                            item.id === user.id
-                            ? { ...item, status: "Inactive" }
-                            : item
+                            item.id === user.id ? data.user : item
                         )
-                        )
+                        );
+                    } catch (error) {
+                        console.error("Failed to deactivate user:", error);
+                        alert(error.message);
                     }
+                    }}
                     className="rounded-lg p-2 text-slate-400 transition hover:bg-white/[0.06] hover:text-red-400"
                     >
                     <UserX size={16} />
@@ -164,15 +200,22 @@ export default function UserManagement() {
 
                     <button
                     title="Activate user"
-                    onClick={() =>
+                    onClick={async () => {
+                    try {
+                        const data = await updateUser(user.id, {
+                        is_active: true,
+                        });
+
                         setUserList((currentUsers) =>
                         currentUsers.map((item) =>
-                            item.id === user.id
-                            ? { ...item, status: "Active" }
-                            : item
+                            item.id === user.id ? data.user : item
                         )
-                        )
+                        );
+                    } catch (error) {
+                        console.error("Failed to activate user:", error);
+                        alert(error.message);
                     }
+                    }}
                     className="rounded-lg p-2 text-slate-400 transition hover:bg-white/[0.06] hover:text-emerald-400"
                     >
                     <UserCheck size={16} />
@@ -270,11 +313,8 @@ export default function UserManagement() {
                 Cancel
                 </button>
 
-                <button
-                onClick={() => {
-                    console.log("Updated user:", editingUser);
-                    setEditingUser(null);
-                }}
+               <button
+                onClick={handleSaveUser}
                 className="rounded-xl bg-cyan-400 px-4 py-2 text-sm font-medium text-[#02111d] hover:bg-cyan-300"
                 >
                 Save Changes
@@ -312,6 +352,10 @@ export default function UserManagement() {
                     type="text"
                     placeholder="Enter full name"
                     className="w-full rounded-xl border border-cyan-400/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/30"
+                    value={newUser.name}
+                    onChange={(e) =>
+                    setNewUser({ ...newUser, name: e.target.value })
+                    }
                 />
                 </div>
 
@@ -323,6 +367,10 @@ export default function UserManagement() {
                     type="email"
                     placeholder="Enter email"
                     className="w-full rounded-xl border border-cyan-400/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/30"
+                    value={newUser.email}
+                    onChange={(e) =>
+                    setNewUser({ ...newUser, email: e.target.value })
+                    }
                 />
                 </div>
 
@@ -334,6 +382,10 @@ export default function UserManagement() {
                     type="password"
                     placeholder="Enter temporary password"
                     className="w-full rounded-xl border border-cyan-400/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/30"
+                    value={newUser.password}
+                    onChange={(e) =>
+                    setNewUser({ ...newUser, password: e.target.value })
+                    }
                 />
                 </div>
 
@@ -345,6 +397,10 @@ export default function UserManagement() {
                 <select
                     defaultValue="VIEWER"
                     className="w-full rounded-xl border border-cyan-400/10 bg-[#071522] px-4 py-3 text-sm text-white outline-none"
+                    value={newUser.role}
+                    onChange={(e) =>
+                    setNewUser({ ...newUser, role: e.target.value })
+                    }
                 >
                     <option value="ADMIN">ADMIN</option>
                     <option value="INCIDENT_COMMANDER">
@@ -366,13 +422,35 @@ export default function UserManagement() {
                 </button>
 
                 <button
-                onClick={() => {
-                    console.log("Create user");
+                onClick={async () => {
+                try {
+                    setCreatingUser(true);
+
+                    const data = await createUser(newUser);
+
+                    setUserList((currentUsers) => [
+                    data.user,
+                    ...currentUsers,
+                    ]);
+
+                    setNewUser({
+                    name: "",
+                    email: "",
+                    password: "",
+                    role: "VIEWER",
+                    });
+
                     setShowAddUser(false);
+                } catch (error) {
+                    console.error("Failed to create user:", error);
+                    alert(error.message);
+                } finally {
+                    setCreatingUser(false);
+                }
                 }}
                 className="rounded-xl bg-cyan-400 px-4 py-2 text-sm font-medium text-[#02111d] hover:bg-cyan-300"
                 >
-                Create User
+                {creatingUser ? "Creating..." : "Create User"}
                 </button>
             </div>
             </div>
