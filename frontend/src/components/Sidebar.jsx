@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Map,
@@ -8,6 +8,7 @@ import {
   Route,
   Truck,
   Shield,
+  LogOut,
 } from "lucide-react";
 
 const items = [
@@ -22,6 +23,15 @@ const items = [
 ];
 
 export default function Sidebar() {
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
   return (
     <aside className="relative z-20 flex h-screen w-[218px] shrink-0 flex-col border-r border-cyan-400/15 bg-[#06111e]/90 px-3 py-5 backdrop-blur-xl">
 
@@ -78,11 +88,22 @@ export default function Sidebar() {
             R
           </div>
           <div>
-            <p className="text-xs font-medium">Field Operator</p>
-            <p className="text-[10px] text-slate-500">Online</p>
+            <p className="text-xs font-medium">
+              {user?.name || "User"}
+            </p>
+            <p className="text-[10px] text-slate-500">
+              {user?.role || "USER"}
+            </p>
           </div>
         </div>
       </div>
+      <button
+        onClick={handleLogout}
+        className="mt-3 flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400 transition hover:bg-red-400/10 hover:text-red-400"
+      >
+        <LogOut size={19} />
+        Logout
+      </button>
     </aside>
   );
 }
