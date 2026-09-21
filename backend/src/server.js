@@ -1,9 +1,12 @@
 const express = require("express");
+const path = require("path");
 const pool = require("./config/database");
 const authRoutes = require("./routes/authRoutes");
 const authenticateToken = require("./middleware/authMiddleware");
 const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
+const incidentRoutes = require("./routes/incidentRoutes");
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -16,8 +19,16 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "../uploads"))
+);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/incidents", incidentRoutes);
+
 
 app.get("/", (req, res) => {
   res.json({

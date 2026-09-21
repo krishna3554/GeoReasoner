@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Search,
@@ -15,7 +15,16 @@ import {
   Upload,
   Image as ImageIcon,
   Plus,
+  Trash2,
 } from "lucide-react";
+
+import {
+  getIncidents,
+  createIncident as createIncidentApi,
+  uploadIncidentImage,
+  updateIncident,
+  deleteIncident,
+} from "../api/incidents";
 
 const incidentsData = [
   {
@@ -131,8 +140,9 @@ function Glass({ children, className = "" }) {
 }
 
 export default function Incidents() {
-  const [incidents, setIncidents] = useState(incidentsData);
-
+const [incidents, setIncidents] = useState([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState("");
   const [selectedIncident, setSelectedIncident] =
     useState(null);
 
@@ -168,7 +178,48 @@ export default function Incidents() {
   const [aiResult, setAiResult] =
     useState(null);
 
-  // FILTER
+
+  useEffect(() => {
+  const fetchIncidents = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await getIncidents();
+
+      const mappedIncidents = data.incidents.map((incident) => ({
+        id: incident.incident_code,
+        dbId: incident.id,
+        title: incident.title,
+        type: incident.type,
+        severity: incident.severity,
+        status: incident.status,
+        location: incident.location,
+        latitude: incident.latitude,
+        longitude: incident.longitude,
+        confidence: Number(incident.confidence || 0),
+        affected: incident.affected_people || 0,
+        time: new Date(incident.created_at).toLocaleString(),
+        unit: incident.assigned_unit || "Unassigned",
+        description: incident.description || "",
+        image: incident.image_url || null,
+        insights: [],
+        recommendation: incident.ai_recommendation || "No recommendation available.",
+      }));
+
+      setIncidents(mappedIncidents);
+     } catch (error) {
+      console.error("Failed to fetch incidents:", error);
+      setError(error.message || "Failed to load incidents");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchIncidents();
+}, []);
+  
+    // FILTER
   const filteredIncidents = useMemo(() => {
     return incidents.filter((incident) => {
       const matchesSearch =
@@ -209,6 +260,25 @@ export default function Incidents() {
 
     if (!file) return;
 
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError("Only JPG, PNG and WEBP images are allowed.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Image size must be less than 10 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setError("");
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setAiResult(null);
@@ -271,7 +341,7 @@ export default function Incidents() {
   };
 
   // CREATE INCIDENT
-  const createIncident = () => {
+ const createIncident = async () => {
     if (
       !incidentLocation ||
       !incidentDescription ||
@@ -281,96 +351,148 @@ export default function Incidents() {
       return;
     }
 
-    const newIncident = {
-      id: `INC-${String(
-        incidents.length + 1
-      ).padStart(3, "0")}`,
+    setLoading(true);
+    setError("");
 
-      title: `${aiResult.type} — ${incidentLocation}`,
+    try {
+      const uploadResult = await uploadIncidentImage(imageFile);
 
-      type: aiResult.type,
+      const imageUrl = `http://localhost:5000${uploadResult.image_url}`;
 
-      severity: aiResult.severity,
+      const data = await createIncidentApi({
+        title: `${aiResult.type} — ${incidentLocation}`,
+        type: aiResult.type,
+        severity: aiResult.severity,
+        status: "Active",
+        location: incidentLocation,
+        description: incidentDescription,
+        confidence: aiResult.confidence,
+        affected_people: aiResult.affected,
+        assigned_unit: "Unassigned",
+        image_url: imageUrl,
+        ai_damage_level: aiResult.damage,
+        ai_recommendation: aiResult.recommendation,
+        insights: [
+          `${aiResult.type} detected from uploaded evidence`,
+          `Estimated damage level: ${aiResult.damage}`,
+          `AI confidence: ${aiResult.confidence}%`,
+        ],
+      });
 
-      status: "Active",
+      const newIncident = {
+        id: data.incident.incident_code,
+        dbId: data.incident.id,
+        title: data.incident.title,
+        type: data.incident.type,
+        severity: data.incident.severity,
+        status: data.incident.status,
+        location: data.incident.location,
+        latitude: data.incident.latitude,
+        longitude: data.incident.longitude,
+        confidence: Number(data.incident.confidence || 0),
+        affected: data.incident.affected_people || 0,
+        time: new Date(data.incident.created_at).toLocaleString(),
+        unit: data.incident.assigned_unit || "Unassigned",
+        description: data.incident.description || "",
+        image: data.incident.image_url || null,
+        insights: [
+          `${aiResult.type} detected from uploaded evidence`,
+          `Estimated damage level: ${aiResult.damage}`,
+          `AI confidence: ${aiResult.confidence}%`,
+        ],
+        recommendation:
+          data.incident.ai_recommendation || "No recommendation available.",
+      };
 
-      location: incidentLocation,
+      setIncidents((prev) => [newIncident, ...prev]);
 
-      confidence: aiResult.confidence,
-
-      affected: aiResult.affected,
-
-      time: "Just now",
-
-      unit: "Unassigned",
-
-      description: incidentDescription,
-
-      image: imagePreview,
-
-      insights: [
-        `${aiResult.type} detected from uploaded evidence`,
-        `Estimated damage level: ${aiResult.damage}`,
-        `AI confidence: ${aiResult.confidence}%`,
-      ],
-
-      recommendation:
-        aiResult.recommendation,
-    };
-
-    setIncidents((prev) => [
-      newIncident,
-      ...prev,
-    ]);
-
-    // Reset
-    setShowCreate(false);
-    setIncidentLocation("");
-    setIncidentDescription("");
-    setIncidentType("Flood");
-    setImagePreview(null);
-    setImageFile(null);
-    setAiResult(null);
+      setShowCreate(false);
+      setIncidentLocation("");
+      setIncidentDescription("");
+      setIncidentType("Flood");
+      setImagePreview(null);
+      setImageFile(null);
+      setAiResult(null);
+    } catch (error) {
+      console.error("Failed to create incident:", error);
+      setError(error.message || "Failed to create incident");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ACKNOWLEDGE
-  const acknowledgeIncident = (id) => {
-    setIncidents((prev) =>
-      prev.map((incident) =>
-        incident.id === id
-          ? {
-              ...incident,
-              status: "Investigating",
-            }
-          : incident
-      )
-    );
+  const acknowledgeIncident = async (incident) => {
+    try {
+      const data = await updateIncident(incident.dbId, {
+        status: "Investigating",
+      });
 
-    setSelectedIncident((prev) =>
-      prev?.id === id
-        ? {
-            ...prev,
-            status: "Investigating",
-          }
-        : prev
-    );
+      setIncidents((prev) =>
+        prev.map((item) =>
+          item.dbId === incident.dbId
+            ? {
+                ...item,
+                status: data.incident.status,
+              }
+            : item
+        )
+      );
+
+      setSelectedIncident((prev) =>
+        prev?.dbId === incident.dbId
+          ? { ...prev, status: data.incident.status }
+          : prev
+      );
+    } catch (error) {
+      console.error("Failed to acknowledge incident:", error);
+      setError(error.message || "Failed to acknowledge incident");
+    }
   };
 
   // CLOSE
-  const closeIncident = (id) => {
+  const closeIncident = async (incident) => {
+    try {
+      const data = await updateIncident(incident.dbId, {
+        status: "Resolved",
+      });
+
+      setIncidents((prev) =>
+        prev.map((item) =>
+          item.dbId === incident.dbId
+            ? {
+                ...item,
+                status: data.incident.status,
+              }
+            : item
+        )
+      );
+
+      setSelectedIncident((prev) =>
+        prev?.dbId === incident.dbId
+          ? { ...prev, status: data.incident.status }
+          : prev
+      );
+    } catch (error) {
+      console.error("Failed to close incident:", error);
+      setError(error.message || "Failed to close incident");
+    }
+  };
+
+  const handleDeleteIncident = async (incident) => {
+  try {
+    await deleteIncident(incident.dbId);
+
     setIncidents((prev) =>
-      prev.map((incident) =>
-        incident.id === id
-          ? {
-              ...incident,
-              status: "Resolved",
-            }
-          : incident
-      )
+      prev.filter((item) => item.dbId !== incident.dbId)
     );
 
     setSelectedIncident(null);
-  };
+  } catch (error) {
+    console.error("Failed to delete incident:", error);
+    setError(error.message || "Failed to delete incident");
+  }
+};
 
   const activeCount = incidents.filter(
     (x) => x.status === "Active"
@@ -624,7 +746,11 @@ export default function Incidents() {
 
         </Glass>
 
-
+        {loading && incidents.length === 0 && (
+          <div className="flex items-center justify-center py-12 text-sm text-cyan-400">
+            Loading incidents...
+          </div>
+        )}
         {/* INCIDENT REGISTRY */}
         <Glass className="overflow-hidden rounded-xl">
 
@@ -754,6 +880,11 @@ export default function Incidents() {
           </div>
 
         </Glass>
+        {error && incidents.length === 0 && (
+          <div className="flex items-center justify-center py-12 text-sm text-red-400">
+            {error}
+          </div>
+        )}
 
       </main>
 
@@ -1058,19 +1189,25 @@ export default function Incidents() {
                 Cancel
               </button>
 
+              {error && (
+                <div className="mb-3 rounded-lg border border-red-400/20 bg-red-500/5 px-3 py-2 text-xs text-red-400">
+                  {error}
+                </div>
+              )}
 
-              <button
-                onClick={createIncident}
-                disabled={
-                  !imageFile ||
-                  !aiResult ||
-                  !incidentLocation ||
-                  !incidentDescription
-                }
-                className="rounded-lg bg-cyan-400 px-5 py-2.5 text-xs font-semibold text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-30"
-              >
-                Create Incident
-              </button>
+             <button
+              onClick={createIncident}
+              disabled={
+                loading ||
+                !imageFile ||
+                !aiResult ||
+                !incidentLocation ||
+                !incidentDescription
+              }
+              className="rounded-lg bg-cyan-400 px-5 py-2.5 text-xs font-semibold text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              {loading ? "Creating..." : "Create Incident"}
+            </button>
 
             </div>
 
@@ -1348,7 +1485,7 @@ export default function Incidents() {
                   <button
                     onClick={() =>
                       acknowledgeIncident(
-                        selectedIncident.id
+                        selectedIncident
                       )
                     }
                     className="flex items-center justify-center gap-2 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-4 py-2 text-[10px] text-cyan-400 hover:bg-cyan-400/10"
@@ -1358,12 +1495,27 @@ export default function Incidents() {
                     />
                     Acknowledge
                   </button>
-
+                  
+                  <button
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "Are you sure you want to delete this incident?"
+                        )
+                      ) {
+                        handleDeleteIncident(selectedIncident);
+                      }
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-2 text-[10px] text-red-400 hover:bg-red-500/10"
+                  >
+                    <Trash2 size={14} />
+                    Delete
+                </button>
 
                   <button
                     onClick={() =>
                       closeIncident(
-                        selectedIncident.id
+                        selectedIncident
                       )
                     }
                     className="flex items-center justify-center gap-2 rounded-lg border border-red-400/20 bg-red-500/5 px-4 py-2 text-[10px] text-red-400 hover:bg-red-500/10"
