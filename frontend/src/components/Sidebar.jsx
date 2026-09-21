@@ -9,6 +9,7 @@ import {
   Truck,
   Shield,
   LogOut,
+  Users,
 } from "lucide-react";
 
 const items = [
@@ -20,6 +21,7 @@ const items = [
   ["Routes", "/routes", Route],
   ["Resources", "/resources", Truck],
   ["Protocols", "/protocols", Shield],
+  ["User Management", "/users", Users],
 ];
 
 export default function Sidebar() {
