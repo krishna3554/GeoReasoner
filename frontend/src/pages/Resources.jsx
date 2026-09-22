@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo,  useEffect, useState } from "react";
 import {
   Ambulance,
   Box,
@@ -17,6 +17,11 @@ import {
   X,
 } from "lucide-react";
 
+import {
+  getResources,
+  createResource as createResourceAPI,
+} from "../api/resources";
+
 function Glass({ children, className = "" }) {
   return (
     <div
@@ -27,116 +32,7 @@ function Glass({ children, className = "" }) {
   );
 }
 
-/* =========================
-   MOCK RESOURCE DATA
-========================= */
 
-const initialResources = [
-  {
-    id: "RES-001",
-    name: "Rescue Unit 01",
-    category: "Rescue Teams",
-    type: "Medical Response",
-    location: "Riverside District",
-    status: "Available",
-    quantity: 8,
-    assigned: 0,
-    capacity: "8 personnel",
-    description:
-      "Emergency medical response team available for rapid deployment.",
-  },
-  {
-    id: "RES-002",
-    name: "Rescue Unit 02",
-    category: "Rescue Teams",
-    type: "Search & Rescue",
-    location: "Eastwood Area",
-    status: "Deployed",
-    quantity: 6,
-    assigned: 6,
-    capacity: "6 personnel",
-    description:
-      "Search and rescue personnel currently responding to an active incident.",
-  },
-  {
-    id: "RES-003",
-    name: "Rescue Unit 03",
-    category: "Rescue Teams",
-    type: "Emergency Response",
-    location: "Northfield",
-    status: "Available",
-    quantity: 10,
-    assigned: 0,
-    capacity: "10 personnel",
-    description:
-      "Emergency response unit ready for disaster-area deployment.",
-  },
-  {
-    id: "RES-004",
-    name: "Emergency Ambulance 01",
-    category: "Vehicles",
-    type: "Ambulance",
-    location: "Central Medical Base",
-    status: "Available",
-    quantity: 4,
-    assigned: 1,
-    capacity: "4 vehicles",
-    description:
-      "Emergency medical transport vehicles available for evacuation and response.",
-  },
-  {
-    id: "RES-005",
-    name: "Relief Truck 02",
-    category: "Vehicles",
-    type: "Supply Truck",
-    location: "Logistics Hub",
-    status: "En Route",
-    quantity: 3,
-    assigned: 2,
-    capacity: "3 vehicles",
-    description:
-      "Supply transport vehicles delivering emergency resources to affected zones.",
-  },
-  {
-    id: "RES-006",
-    name: "Emergency Water Supply",
-    category: "Supplies",
-    type: "Drinking Water",
-    location: "Central Warehouse",
-    status: "Available",
-    quantity: 12500,
-    assigned: 4200,
-    capacity: "12,500 L",
-    description:
-      "Emergency drinking-water reserve for affected communities and shelters.",
-  },
-  {
-    id: "RES-007",
-    name: "Emergency Food Kits",
-    category: "Supplies",
-    type: "Food",
-    location: "Relief Warehouse",
-    status: "Limited",
-    quantity: 2400,
-    assigned: 1900,
-    capacity: "2,400 kits",
-    description:
-      "Packaged emergency food supplies prepared for disaster relief distribution.",
-  },
-  {
-    id: "RES-008",
-    name: "Northfield School",
-    category: "Shelters",
-    type: "Emergency Shelter",
-    location: "Northfield",
-    status: "Active",
-    quantity: 1200,
-    assigned: 880,
-    capacity: "1,200 people",
-    description:
-      "Operational emergency shelter currently receiving displaced residents.",
-  },
-];
 
 /* =========================
    HELPERS
@@ -201,7 +97,9 @@ function resourceIcon(category) {
 ========================= */
 
 export default function Resources() {
-  const [resources, setResources] = useState(initialResources);
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] =
@@ -218,6 +116,35 @@ export default function Resources() {
   const [newType, setNewType] = useState("");
   const [newLocation, setNewLocation] = useState("");
   const [newQuantity, setNewQuantity] = useState("");
+
+  useEffect(() => {
+    const loadResources = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await getResources();
+
+        const formattedResources = data.map((resource) => ({
+          ...resource,
+
+          // Fields expected by the existing UI
+          id: resource.resource_code,
+          assigned: 0,
+          capacity: `${resource.quantity} units`,
+        }));
+
+        setResources(formattedResources);
+      } catch (err) {
+        console.error("Failed to load resources:", err);
+        setError(err.message || "Failed to load resources");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadResources();
+  }, []);
 
   /* =========================
      FILTER
@@ -287,35 +214,40 @@ export default function Resources() {
      CREATE RESOURCE
   ========================= */
 
-  const createResource = () => {
-    if (
-      !newName ||
-      !newType ||
-      !newLocation ||
-      !newQuantity
-    ) {
-      return;
-    }
+  const createResource = async () => {
+  if (
+    !newName ||
+    !newType ||
+    !newLocation ||
+    !newQuantity
+  ) {
+    setError("Please fill in all required fields.");
+    return;
+  }
 
-    const newResource = {
-      id: `RES-${String(resources.length + 1).padStart(
-        3,
-        "0"
-      )}`,
+  try {
+    setError("");
+
+    const createdResource = await createResourceAPI({
       name: newName,
       category: newCategory,
       type: newType,
       location: newLocation,
       status: "Available",
       quantity: Number(newQuantity),
-      assigned: 0,
-      capacity: `${newQuantity} units`,
       description:
         "New emergency resource added to the GeoReasoner resource registry.",
+    });
+
+    const formattedResource = {
+      ...createdResource,
+      id: createdResource.resource_code,
+      assigned: 0,
+      capacity: `${createdResource.quantity} units`,
     };
 
     setResources((prev) => [
-      newResource,
+      formattedResource,
       ...prev,
     ]);
 
@@ -326,7 +258,11 @@ export default function Resources() {
     setNewType("");
     setNewLocation("");
     setNewQuantity("");
-  };
+  } catch (err) {
+    console.error("Failed to create resource:", err);
+    setError(err.message || "Failed to create resource");
+  }
+};
 
   return (
     <div className="h-screen overflow-hidden bg-[#020b13] text-slate-100">

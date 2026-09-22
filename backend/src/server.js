@@ -6,6 +6,7 @@ const authenticateToken = require("./middleware/authMiddleware");
 const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 const incidentRoutes = require("./routes/incidentRoutes");
+const resourceRoutes = require("./routes/resourceRoutes");
 
 
 const app = express();
@@ -28,6 +29,7 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/incidents", incidentRoutes);
+app.use("/api/resources", resourceRoutes);
 
 
 app.get("/", (req, res) => {
