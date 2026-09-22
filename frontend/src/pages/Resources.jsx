@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo,  useEffect, useState } from "react";
 import {
   Ambulance,
   Box,
@@ -17,6 +17,15 @@ import {
   X,
 } from "lucide-react";
 
+import {
+  getResources,
+  createResource as createResourceAPI,
+  getResourceAssignments,
+  createResourceAssignment,
+} from "../api/resources";
+
+import { getIncidents } from "../api/incidents";
+
 function Glass({ children, className = "" }) {
   return (
     <div
@@ -27,116 +36,7 @@ function Glass({ children, className = "" }) {
   );
 }
 
-/* =========================
-   MOCK RESOURCE DATA
-========================= */
 
-const initialResources = [
-  {
-    id: "RES-001",
-    name: "Rescue Unit 01",
-    category: "Rescue Teams",
-    type: "Medical Response",
-    location: "Riverside District",
-    status: "Available",
-    quantity: 8,
-    assigned: 0,
-    capacity: "8 personnel",
-    description:
-      "Emergency medical response team available for rapid deployment.",
-  },
-  {
-    id: "RES-002",
-    name: "Rescue Unit 02",
-    category: "Rescue Teams",
-    type: "Search & Rescue",
-    location: "Eastwood Area",
-    status: "Deployed",
-    quantity: 6,
-    assigned: 6,
-    capacity: "6 personnel",
-    description:
-      "Search and rescue personnel currently responding to an active incident.",
-  },
-  {
-    id: "RES-003",
-    name: "Rescue Unit 03",
-    category: "Rescue Teams",
-    type: "Emergency Response",
-    location: "Northfield",
-    status: "Available",
-    quantity: 10,
-    assigned: 0,
-    capacity: "10 personnel",
-    description:
-      "Emergency response unit ready for disaster-area deployment.",
-  },
-  {
-    id: "RES-004",
-    name: "Emergency Ambulance 01",
-    category: "Vehicles",
-    type: "Ambulance",
-    location: "Central Medical Base",
-    status: "Available",
-    quantity: 4,
-    assigned: 1,
-    capacity: "4 vehicles",
-    description:
-      "Emergency medical transport vehicles available for evacuation and response.",
-  },
-  {
-    id: "RES-005",
-    name: "Relief Truck 02",
-    category: "Vehicles",
-    type: "Supply Truck",
-    location: "Logistics Hub",
-    status: "En Route",
-    quantity: 3,
-    assigned: 2,
-    capacity: "3 vehicles",
-    description:
-      "Supply transport vehicles delivering emergency resources to affected zones.",
-  },
-  {
-    id: "RES-006",
-    name: "Emergency Water Supply",
-    category: "Supplies",
-    type: "Drinking Water",
-    location: "Central Warehouse",
-    status: "Available",
-    quantity: 12500,
-    assigned: 4200,
-    capacity: "12,500 L",
-    description:
-      "Emergency drinking-water reserve for affected communities and shelters.",
-  },
-  {
-    id: "RES-007",
-    name: "Emergency Food Kits",
-    category: "Supplies",
-    type: "Food",
-    location: "Relief Warehouse",
-    status: "Limited",
-    quantity: 2400,
-    assigned: 1900,
-    capacity: "2,400 kits",
-    description:
-      "Packaged emergency food supplies prepared for disaster relief distribution.",
-  },
-  {
-    id: "RES-008",
-    name: "Northfield School",
-    category: "Shelters",
-    type: "Emergency Shelter",
-    location: "Northfield",
-    status: "Active",
-    quantity: 1200,
-    assigned: 880,
-    capacity: "1,200 people",
-    description:
-      "Operational emergency shelter currently receiving displaced residents.",
-  },
-];
 
 /* =========================
    HELPERS
@@ -201,7 +101,9 @@ function resourceIcon(category) {
 ========================= */
 
 export default function Resources() {
-  const [resources, setResources] = useState(initialResources);
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] =
@@ -211,6 +113,10 @@ export default function Resources() {
 
   const [selectedResource, setSelectedResource] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [incidents, setIncidents] = useState([]);
+  const [showAssignmentForm, setShowAssignmentForm] = useState(false);
+  const [assignmentIncident, setAssignmentIncident] = useState("");
+  const [assignmentQuantity, setAssignmentQuantity] = useState("");
 
   const [newName, setNewName] = useState("");
   const [newCategory, setNewCategory] =
@@ -218,6 +124,126 @@ export default function Resources() {
   const [newType, setNewType] = useState("");
   const [newLocation, setNewLocation] = useState("");
   const [newQuantity, setNewQuantity] = useState("");
+
+  const openResourceDetails = async (resource) => {
+    try {
+      setSelectedResource({
+        ...resource,
+        assignments: [],
+      });
+
+      const assignments = await getResourceAssignments(
+        resource.resourceUuid
+      );
+
+      setSelectedResource({
+        ...resource,
+        assignments,
+      });
+    } catch (err) {
+      console.error("Failed to load assignments:", err);
+
+      setSelectedResource({
+        ...resource,
+        assignments: [],
+      });
+    }
+  };
+
+  const handleCreateAssignment = async () => {
+    if (!selectedResource || !assignmentIncident || !assignmentQuantity) {
+      return;
+    }
+
+    try {
+      await createResourceAssignment({
+        resource_id: selectedResource.resourceUuid,
+        incident_id: assignmentIncident,
+        quantity: Number(assignmentQuantity),
+      });
+
+      // Refresh assignments
+      const assignments = await getResourceAssignments(
+        selectedResource.resourceUuid
+      );
+
+      setSelectedResource({
+        ...selectedResource,
+        assignments,
+      });
+
+      // Reset form
+      setAssignmentIncident("");
+      setAssignmentQuantity("");
+      setShowAssignmentForm(false);
+
+      // Refresh resource list so quantity/status update
+      const data = await getResources();
+
+      const formattedResources = data.map((resource) => ({
+        ...resource,
+        id: resource.resource_code,
+        resourceUuid: resource.id,
+        capacity: `${resource.quantity} units`,
+      }));
+
+      setResources(formattedResources);
+    } catch (err) {
+      console.error("Failed to create assignment:", err);
+      alert(err.message || "Failed to assign resource");
+    }
+  };
+
+  useEffect(() => {
+    const loadResources = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await getResources();
+
+        const formattedResources = data.map((resource) => ({
+          ...resource,
+
+          // Display ID
+          id: resource.resource_code,
+
+          // Database UUID used by assignment API
+          resourceUuid: resource.id,
+
+          capacity: `${resource.quantity} units`,
+        }));
+
+        setResources(formattedResources);
+      } catch (err) {
+        console.error("Failed to load resources:", err);
+        setError(err.message || "Failed to load resources");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadResources();
+  }, []);
+
+  useEffect(() => {
+    const loadIncidents = async () => {
+      try {
+        const data = await getIncidents();
+
+        const formattedIncidents = (data.incidents || data).map((incident) => ({
+          ...incident,
+          dbId: incident.id,
+        }));
+
+        setIncidents(formattedIncidents);
+      } catch (err) {
+        console.error("Failed to load incidents:", err);
+      }
+    };
+
+    loadIncidents();
+  }, []);
 
   /* =========================
      FILTER
@@ -287,35 +313,41 @@ export default function Resources() {
      CREATE RESOURCE
   ========================= */
 
-  const createResource = () => {
-    if (
-      !newName ||
-      !newType ||
-      !newLocation ||
-      !newQuantity
-    ) {
-      return;
-    }
+  const createResource = async () => {
+  if (
+    !newName ||
+    !newType ||
+    !newLocation ||
+    !newQuantity
+  ) {
+    setError("Please fill in all required fields.");
+    return;
+  }
 
-    const newResource = {
-      id: `RES-${String(resources.length + 1).padStart(
-        3,
-        "0"
-      )}`,
+  try {
+    setError("");
+
+    const createdResource = await createResourceAPI({
       name: newName,
       category: newCategory,
       type: newType,
       location: newLocation,
       status: "Available",
       quantity: Number(newQuantity),
-      assigned: 0,
-      capacity: `${newQuantity} units`,
       description:
         "New emergency resource added to the GeoReasoner resource registry.",
+    });
+
+    const formattedResource = {
+      ...createdResource,
+      id: createdResource.resource_code,
+      resourceUuid: createdResource.id,
+      assigned: 0,
+      capacity: `${createdResource.quantity} units`,
     };
 
     setResources((prev) => [
-      newResource,
+      formattedResource,
       ...prev,
     ]);
 
@@ -326,7 +358,15 @@ export default function Resources() {
     setNewType("");
     setNewLocation("");
     setNewQuantity("");
-  };
+  } catch (err) {
+    console.error("Failed to create resource:", err);
+    setError(err.message || "Failed to create resource");
+  }
+
+  
+};
+
+
 
   return (
     <div className="h-screen overflow-hidden bg-[#020b13] text-slate-100">
@@ -721,14 +761,12 @@ export default function Resources() {
                       </div>
                     </div>
 
+                    
+
                     {/* ACTION */}
 
                     <button
-                      onClick={() =>
-                        setSelectedResource(
-                          resource
-                        )
-                      }
+                      onClick={() => openResourceDetails(resource)}
                       className="flex h-9 shrink-0 items-center gap-2 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 text-xs text-cyan-300 transition hover:bg-cyan-400/10"
                     >
                       View
@@ -787,11 +825,7 @@ export default function Resources() {
               </div>
 
               <button
-                onClick={() =>
-                  setSelectedResource(
-                    null
-                  )
-                }
+                onClick={() => setSelectedResource(null)}
                 className="rounded-lg p-2 text-slate-500 transition hover:bg-white/5 hover:text-slate-200"
               >
                 <X size={21} />
@@ -928,6 +962,118 @@ export default function Resources() {
                 </div>
               </div>
 
+              {/* Resource Assignment */}
+              <div className="mt-6 border-t border-white/10 pt-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white">
+                    Resource Assignment
+                  </h3>
+
+                  <button
+                    onClick={() => setShowAssignmentForm(!showAssignmentForm)}
+                    className="rounded-lg bg-cyan-500/20 px-3 py-2 text-xs font-medium text-cyan-300 hover:bg-cyan-500/30"
+                  >
+                    + Assign Resource
+                  </button>
+                </div>
+
+                {showAssignmentForm && (
+                  <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+
+                    <div>
+                      <label className="mb-1 block text-xs text-slate-400">
+                        Incident
+                      </label>
+
+                      <select
+                        value={assignmentIncident}
+                        onChange={(e) => setAssignmentIncident(e.target.value)}
+                        className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white"
+                      >
+                        <option value="">Select incident</option>
+
+                        {incidents.map((incident) => (
+                          <option
+                            key={incident.dbId}
+                            value={incident.dbId}
+                          >
+                            {incident.incident_code} — {incident.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs text-slate-400">
+                        Quantity
+                      </label>
+
+                      <input
+                        type="number"
+                        min="1"
+                        value={assignmentQuantity}
+                        onChange={(e) => setAssignmentQuantity(e.target.value)}
+                        placeholder="Enter quantity"
+                        className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white"
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleCreateAssignment}
+                      disabled={!assignmentIncident || !assignmentQuantity}
+                      className="w-full rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Assign Resource
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* CURRENT ASSIGNMENTS */}
+
+              {selectedResource.assignments?.length > 0 && (
+                <div className="rounded-xl border border-cyan-400/10 bg-[#06131f] p-5">
+                  <div className="mb-4 text-[10px] font-semibold uppercase tracking-wide text-cyan-400">
+                    Current Assignments
+                  </div>
+
+                  <div className="space-y-3">
+                    {selectedResource.assignments.map((assignment) => (
+                      <div
+                        key={assignment.id}
+                        className="rounded-lg border border-slate-700/50 bg-[#071522] p-4"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="text-sm font-semibold text-slate-200">
+                              {assignment.incident_code}
+                            </div>
+
+                            <div className="mt-1 text-xs text-slate-500">
+                              {assignment.incident_title}
+                            </div>
+                          </div>
+
+                          <span className="rounded-md border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-[10px] font-semibold text-cyan-400">
+                            {assignment.status}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between text-xs">
+                          <span className="text-slate-500">
+                            Quantity
+                          </span>
+
+                          <span className="font-semibold text-slate-300">
+                            {assignment.quantity}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* DESCRIPTION */}
 
               <div className="rounded-xl border border-slate-700/50 bg-[#06131f] p-5">
@@ -975,11 +1121,7 @@ export default function Resources() {
               </div>
 
               <button
-                onClick={() =>
-                  setSelectedResource(
-                    null
-                  )
-                }
+                onClick={() => setSelectedResource(null)}
                 className="rounded-lg bg-cyan-400 px-5 py-2.5 text-xs font-semibold text-[#021018] transition hover:bg-cyan-300"
               >
                 Close

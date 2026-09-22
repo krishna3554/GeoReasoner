@@ -14,16 +14,22 @@ const {
 
 const router = express.Router();
 
+// Get all incidents
 router.get(
   "/",
   authenticateToken,
   getIncidents
 );
 
+// Upload incident image
 router.post(
   "/upload-image",
   authenticateToken,
-  authorizeRoles("ADMIN", "INCIDENT_COMMANDER", "RESPONSE_TEAM"),
+  authorizeRoles(
+    "ADMIN",
+    "INCIDENT_COMMANDER",
+    "RESPONSE_TEAM"
+  ),
   upload.single("image"),
   (req, res) => {
     if (!req.file) {
@@ -39,12 +45,14 @@ router.post(
   }
 );
 
+// Get incident by ID
 router.get(
   "/:id",
   authenticateToken,
   getIncidentById
 );
 
+// Create incident
 router.post(
   "/",
   authenticateToken,
@@ -56,6 +64,7 @@ router.post(
   createIncident
 );
 
+// Update incident
 router.patch(
   "/:id",
   authenticateToken,
@@ -67,10 +76,14 @@ router.patch(
   updateIncident
 );
 
+// Delete incident
 router.delete(
   "/:id",
   authenticateToken,
-  authorizeRoles("ADMIN", "INCIDENT_COMMANDER"),
+  authorizeRoles(
+    "ADMIN",
+    "INCIDENT_COMMANDER"
+  ),
   deleteIncident
 );
 

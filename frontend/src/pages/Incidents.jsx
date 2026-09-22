@@ -20,10 +20,11 @@ import {
 
 import {
   getIncidents,
+  getIncidentById,
   createIncident as createIncidentApi,
   uploadIncidentImage,
   updateIncident,
-  deleteIncident,
+  deleteIncident
 } from "../api/incidents";
 
 const incidentsData = [
@@ -861,11 +862,22 @@ const [error, setError] = useState("");
 
 
                   <button
-                    onClick={() =>
-                      setSelectedIncident(
-                        incident
-                      )
-                    }
+                    onClick={async () => {
+                      try {
+                        const data = await getIncidentById(incident.dbId);
+
+                        setSelectedIncident({
+                          ...incident,
+                          insights: data.insights?.map((item) => item.insight) || [],
+                          recommendation:
+                            data.incident.ai_recommendation ||
+                            "No recommendation available.",
+                        });
+                      } catch (error) {
+                        console.error("Failed to load incident details:", error);
+                        setError(error.message || "Failed to load incident details");
+                      }
+                    }}
                     className="flex items-center justify-center gap-1.5 rounded-md border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-[9px] text-cyan-400 transition hover:bg-cyan-400/10"
                   >
                     <Eye size={12} />
