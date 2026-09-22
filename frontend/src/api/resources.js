@@ -75,3 +75,37 @@ export const deleteResource = async (id) => {
 
   return data;
 };
+
+export const getResourceAssignments = async (resourceId) => {
+  const response = await fetch(
+    `http://localhost:5000/api/resource-assignments/resource/${resourceId}`,
+    {
+      headers: getAuthHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch resource assignments");
+  }
+
+  return response.json();
+};
+
+export const createResourceAssignment = async (assignment) => {
+  const response = await fetch(
+    "http://localhost:5000/api/resource-assignments",
+    {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(assignment),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to create assignment");
+  }
+
+  return data;
+};

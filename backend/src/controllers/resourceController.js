@@ -4,15 +4,31 @@ const pool = require("../config/database");
 const getResources = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT *
-      FROM resources
-      ORDER BY created_at DESC
+      SELECT
+        r.*,
+        COALESCE(
+          SUM(
+            CASE
+              WHEN ra.status IN ('Assigned', 'Dispatched')
+              THEN ra.quantity
+              ELSE 0
+            END
+          ),
+          0
+        ) AS assigned
+      FROM resources r
+      LEFT JOIN resource_assignments ra
+        ON r.id = ra.resource_id
+      GROUP BY r.id
+      ORDER BY r.created_at DESC
     `);
 
     res.json(result.rows);
   } catch (error) {
     console.error("Get resources error:", error);
-    res.status(500).json({ message: "Failed to fetch resources" });
+    res.status(500).json({
+      message: "Failed to fetch resources",
+    });
   }
 };
 

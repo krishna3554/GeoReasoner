@@ -2,29 +2,57 @@ const express = require("express");
 
 const authenticateToken = require("../middleware/authMiddleware");
 const authorizeRoles = require("../middleware/roleMiddleware");
+const upload = require("../config/upload");
 
 const {
-  getResources,
-  getResourceById,
-  createResource,
-  updateResource,
-  deleteResource,
-} = require("../controllers/resourceController");
+  getIncidents,
+  getIncidentById,
+  createIncident,
+  updateIncident,
+  deleteIncident,
+} = require("../controllers/incidentController");
 
 const router = express.Router();
 
+// Get all incidents
 router.get(
   "/",
   authenticateToken,
-  getResources
+  getIncidents
 );
 
+// Upload incident image
+router.post(
+  "/upload-image",
+  authenticateToken,
+  authorizeRoles(
+    "ADMIN",
+    "INCIDENT_COMMANDER",
+    "RESPONSE_TEAM"
+  ),
+  upload.single("image"),
+  (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No image uploaded",
+      });
+    }
+
+    res.status(201).json({
+      message: "Image uploaded successfully",
+      image_url: `/uploads/incidents/${req.file.filename}`,
+    });
+  }
+);
+
+// Get incident by ID
 router.get(
   "/:id",
   authenticateToken,
-  getResourceById
+  getIncidentById
 );
 
+// Create incident
 router.post(
   "/",
   authenticateToken,
@@ -33,9 +61,10 @@ router.post(
     "INCIDENT_COMMANDER",
     "RESPONSE_TEAM"
   ),
-  createResource
+  createIncident
 );
 
+// Update incident
 router.patch(
   "/:id",
   authenticateToken,
@@ -44,14 +73,18 @@ router.patch(
     "INCIDENT_COMMANDER",
     "RESPONSE_TEAM"
   ),
-  updateResource
+  updateIncident
 );
 
+// Delete incident
 router.delete(
   "/:id",
   authenticateToken,
-  authorizeRoles("ADMIN", "INCIDENT_COMMANDER"),
-  deleteResource
+  authorizeRoles(
+    "ADMIN",
+    "INCIDENT_COMMANDER"
+  ),
+  deleteIncident
 );
 
 module.exports = router;

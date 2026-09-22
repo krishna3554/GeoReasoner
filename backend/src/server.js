@@ -7,6 +7,7 @@ const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 const incidentRoutes = require("./routes/incidentRoutes");
 const resourceRoutes = require("./routes/resourceRoutes");
+const resourceAssignmentRoutes = require("./routes/resourceAssignmentRoutes");
 
 
 const app = express();
@@ -30,6 +31,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/incidents", incidentRoutes);
 app.use("/api/resources", resourceRoutes);
+app.use(
+  "/api/resource-assignments",
+  resourceAssignmentRoutes
+);
 
 
 app.get("/", (req, res) => {
