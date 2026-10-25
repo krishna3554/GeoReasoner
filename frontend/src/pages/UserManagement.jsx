@@ -71,7 +71,7 @@ export default function UserManagement() {
     };
 
   return (
-    <main className="min-h-screen bg-[#020b14] p-7 text-white">
+    <main className="legacy-page min-h-screen bg-[#020b14] p-7 text-white">
       {/* Header */}
       <div className="mb-7 flex items-center justify-between">
         <div>

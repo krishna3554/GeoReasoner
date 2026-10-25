@@ -375,8 +375,8 @@ export default function Protocols() {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-[#020b13] text-slate-100">
-      <main className="flex h-screen min-h-0 flex-col overflow-hidden p-7">
+    <div className="legacy-page h-screen overflow-hidden bg-[#020b13] text-slate-100">
+      <main className="legacy-page flex h-screen min-h-0 flex-col overflow-hidden p-7">
         {/* =========================
             HEADER
         ========================= */}

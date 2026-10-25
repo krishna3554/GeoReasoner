@@ -198,7 +198,7 @@ export default function DamageAnalysis() {
   );
 
   return (
-    <div className="min-h-screen bg-[#020b13] text-white">
+    <div className="legacy-page min-h-screen bg-[#020b13] text-white">
 
       {/* BACKGROUND */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">

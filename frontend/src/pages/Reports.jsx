@@ -257,7 +257,7 @@ Human verification is required before operational decisions.
   };
 
   return (
-    <div className="min-h-screen bg-[#020b13] text-slate-100">
+    <div className="legacy-page min-h-screen bg-[#020b13] text-slate-100">
       {/* PAGE */}
       <main className="p-7">
         {/* HEADER */}

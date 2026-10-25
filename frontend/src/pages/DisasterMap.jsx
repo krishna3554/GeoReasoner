@@ -274,7 +274,7 @@ function RouteLoader({ onRouteLoaded }) {
 ========================= */
 
 export default function DisasterMap() {
-  const [mapMode, setMapMode] = useState("dark");
+  const [mapMode, setMapMode] = useState("street");
 
   const [layers, setLayers] = useState({
     flood: true,
@@ -309,7 +309,7 @@ export default function DisasterMap() {
   };
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[#020b13] text-slate-100">
+    <div className="legacy-page relative h-screen overflow-hidden bg-[#020b13] text-slate-100">
       {/* =========================
           HEADER
       ========================= */}
@@ -365,7 +365,7 @@ export default function DisasterMap() {
       <Glass className="absolute right-5 top-28 z-[1000] rounded-xl p-1.5">
         <div className="flex items-center gap-1">
           {[
-            ["dark", "Dark"],
+            ["street", "Street"],
             ["satellite", "Satellite"],
             ["hybrid", "Hybrid"],
           ].map(([mode, label]) => (
@@ -672,11 +672,11 @@ export default function DisasterMap() {
         zoomControl={false}
         className="h-full w-full"
       >
-        {/* DARK MAP */}
-        {mapMode === "dark" && (
+        {/* STREET MAP */}
+        {mapMode === "street" && (
           <TileLayer
-            attribution="Tiles © Esri"
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+            attribution="&copy; OpenStreetMap contributors"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
         )}
 
