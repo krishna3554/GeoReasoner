@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
 import { login } from "../api/auth";
 
 export default function Login() {
@@ -7,147 +7,23 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async (e) => {
-  e.preventDefault();
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    try {
+      const data = await login(email, password);
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      window.location.href = "/";
+    } catch (error) {
+      alert(error.message || "Unable to connect to the server");
+    }
+  };
 
-  try {
-    const data = await login(email, password);
-
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-
-    console.log("Login successful:", data.user);
-
-    window.location.href = "/";
-  } catch (error) {
-    console.error("Login error:", error);
-    alert(error.message || "Unable to connect to the server");
-  }
-};
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#020b13] px-4 text-white">
-      {/* Background glow */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-400/5 blur-[120px]" />
-        <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-blue-500/5 blur-[100px]" />
-      </div>
-
-      {/* Login card */}
-      <div className="relative w-full max-w-md">
-        <div className="rounded-2xl border border-cyan-400/15 bg-[#071522]/80 p-8 shadow-[0_0_80px_#22d3ee10] backdrop-blur-xl">
-          
-          {/* Logo */}
-          <div className="mb-8 flex flex-col items-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10 shadow-[0_0_30px_#22d3ee25]">
-              <Shield className="text-cyan-400" size={30} />
-            </div>
-
-            <h1 className="text-2xl font-semibold tracking-wide">
-              Geo<span className="text-cyan-400">Reasoner</span>
-            </h1>
-
-            <p className="mt-2 text-center text-xs text-slate-400">
-              Disaster Intelligence & Response Platform
-            </p>
-          </div>
-
-          {/* Heading */}
-          <div className="mb-6">
-            <h2 className="text-lg font-medium">
-              Sign in to your account
-            </h2>
-
-            <p className="mt-1 text-xs text-slate-500">
-              Access the emergency response control center
-            </p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-
-            {/* Email */}
-            <div>
-              <label className="mb-2 block text-xs text-slate-400">
-                Email Address
-              </label>
-
-              <div className="relative">
-                <Mail
-                  size={17}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                />
-
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@georeasoner.com"
-                  required
-                  className="w-full rounded-lg border border-cyan-400/10 bg-[#020b13]/70 py-3 pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20"
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="mb-2 block text-xs text-slate-400">
-                Password
-              </label>
-
-              <div className="relative">
-                <Lock
-                  size={17}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-                />
-
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  className="w-full rounded-lg border border-cyan-400/10 bg-[#020b13]/70 py-3 pl-10 pr-11 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20"
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-cyan-400"
-                >
-                  {showPassword ? (
-                    <EyeOff size={17} />
-                  ) : (
-                    <Eye size={17} />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Login button */}
-            <button
-              type="submit"
-              className="group flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-400/30 bg-cyan-400/10 py-3 text-sm font-medium text-cyan-300 transition hover:bg-cyan-400/20 hover:shadow-[0_0_25px_#22d3ee20]"
-            >
-              Sign In
-              <ArrowRight
-                size={16}
-                className="transition group-hover:translate-x-1"
-              />
-            </button>
-          </form>
-
-          {/* Footer */}
-          <div className="mt-7 border-t border-white/5 pt-5 text-center">
-            <p className="text-[10px] text-slate-600">
-              GeoReasoner Emergency Intelligence System
-            </p>
-
-            <p className="mt-1 text-[10px] text-slate-700">
-              Secure access • Role-based control • AI-assisted response
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="login-page">
+    <div className="login-pattern" />
+    <div className="login-layout">
+      <section className="login-intro"><div className="login-brand"><span className="brand-mark">G</span><strong>GeoReasoner</strong></div><p className="eyebrow">NATIONAL RESPONSE INTELLIGENCE</p><h1>Clarity when<br /><em>every minute matters.</em></h1><p className="login-copy">AI-assisted damage intelligence for emergency responders, dispatch coordinators, and the communities they protect.</p><div className="login-trust"><div><ShieldCheck size={17} /><span>Secure role-based access</span></div><div><span className="live-dot" /><span>Live incident network</span></div></div></section>
+      <section className="login-card"><div className="login-card-heading"><div className="login-icon"><ShieldCheck size={22} /></div><div><p className="panel-kicker">RESPONSE CONTROL CENTER</p><h2>Welcome back</h2></div></div><p className="login-subtitle">Sign in to continue to your regional response workspace.</p><form onSubmit={handleLogin}><label>Email address<div className="login-input"><Mail size={16} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@response.gov.in" required /></div></label><label>Password<div className="login-input"><Lock size={16} /><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" required /><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></label><button className="login-submit" type="submit">Sign in to GeoReasoner <ArrowRight size={16} /></button></form><div className="login-help"><span>Need access?</span><a href="mailto:admin@georeasoner.com">Contact your administrator</a></div></section>
+    </div><p className="login-footer">GeoReasoner · Emergency Intelligence System · Maharashtra Response Cell</p>
+  </div>;
 }

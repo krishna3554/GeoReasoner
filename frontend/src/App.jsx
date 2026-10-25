@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import ProtectedRoute from "./components/protectedRoute";
 import Sidebar from "./components/Sidebar";
 import Login from "./pages/Login";
@@ -13,13 +13,15 @@ import Protocols from "./pages/Protocols";
 import UserManagement from "./pages/UserManagement";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
 
-function App() {
-  return (
-    <BrowserRouter>
-      <div className="app-shell">
-        <Sidebar />
+function AppContent() {
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/login";
 
-        <main className="flex-1">
+  return (
+    <div className={isLoginPage ? "app-shell login-shell" : "app-shell"}>
+      {!isLoginPage && <Sidebar />}
+
+      <main className="flex-1">
           <Routes>
             <Route path="/login" element={<Login />} />
 
@@ -37,10 +39,13 @@ function App() {
               </Route>
             </Route>
           </Routes>
-        </main>
-      </div>
-    </BrowserRouter>
+      </main>
+    </div>
   );
+}
+
+function App() {
+  return <BrowserRouter><AppContent /></BrowserRouter>;
 }
 
 export default App;
