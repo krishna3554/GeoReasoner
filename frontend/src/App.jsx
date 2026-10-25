@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "./components/protectedRoute";
 import Sidebar from "./components/Sidebar";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -16,7 +16,7 @@ import RoleProtectedRoute from "./components/RoleProtectedRoute";
 function App() {
   return (
     <BrowserRouter>
-      <div className="flex min-h-screen bg-slate-950 text-white">
+      <div className="app-shell">
         <Sidebar />
 
         <main className="flex-1">
