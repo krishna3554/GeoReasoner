@@ -8,6 +8,7 @@ const userRoutes = require("./routes/userRoutes");
 const incidentRoutes = require("./routes/incidentRoutes");
 const resourceRoutes = require("./routes/resourceRoutes");
 const resourceAssignmentRoutes = require("./routes/resourceAssignmentRoutes");
+const mlRoutes = require("./routes/mlRoutes");
 
 
 const app = express();
@@ -35,6 +36,7 @@ app.use(
   "/api/resource-assignments",
   resourceAssignmentRoutes
 );
+app.use("/api/ml", mlRoutes);
 
 
 app.get("/", (req, res) => {

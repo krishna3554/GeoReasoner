@@ -1,0 +1,11 @@
+{
+  "destroyed:flood": {"recommendation": "Deploy heavy rescue team, boat unit, and medical unit.", "priority": "critical"},
+  "major-damage:flood": {"recommendation": "Deploy boat-capable rescue team and establish an evacuation corridor.", "priority": "high"},
+  "destroyed:fire": {"recommendation": "Deploy fire suppression, heavy rescue, and medical unit.", "priority": "critical"},
+  "major-damage:fire": {"recommendation": "Deploy fire suppression and structural assessment teams.", "priority": "high"},
+  "destroyed:structural": {"recommendation": "Establish a safety perimeter and deploy heavy rescue plus structural engineers.", "priority": "critical"},
+  "major-damage:structural": {"recommendation": "Restrict access and deploy structural assessment and rescue teams.", "priority": "high"},
+  "minor-damage:unknown": {"recommendation": "Schedule inspection and keep a response unit on standby.", "priority": "medium"},
+  "no-damage:unknown": {"recommendation": "Continue monitoring; no immediate rescue deployment is indicated.", "priority": "low"},
+  "default": {"recommendation": "Perform a field assessment and keep a response unit on standby.", "priority": "medium"}
+}

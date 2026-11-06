@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -13,6 +13,8 @@ import {
   Truck,
   X,
 } from "lucide-react";
+import { getIncidents } from "../api/incidents";
+import { planRoute as requestRoute } from "../api/ml";
 
 function Glass({ children, className = "" }) {
   return (
@@ -152,6 +154,25 @@ function roadStatusStyle(status) {
 export default function Routes() {
   const [routes, setRoutes] = useState(initialRoutes);
 
+  useEffect(() => {
+    getIncidents().then(({ incidents = [] }) => {
+      const generated = incidents.filter((incident) => incident.latitude && incident.longitude).map((incident, index) => {
+        const end = [Number(incident.latitude), Number(incident.longitude)];
+        return {
+          id: incident.incident_code || `RTE-${String(index + 1).padStart(3, "0")}`,
+          name: `${incident.title} Response Route`, source: "Nearest rescue unit",
+          destination: incident.location || incident.title, start: [end[0] - 0.02, end[1] - 0.02], end,
+          distance: "Not planned", eta: "Not planned", status: "Active",
+          priority: incident.severity === "HIGH" ? "Critical" : "Medium",
+          roadStatus: "Unknown", certainty: incident.certainty || "unknown",
+          description: "Route generated from the current incident record.",
+          recommendation: "Plan before dispatching a response unit.",
+        };
+      });
+      if (generated.length) setRoutes(generated);
+    }).catch((error) => console.error("Route load error:", error));
+  }, []);
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] =
     useState("All Status");
@@ -237,31 +258,15 @@ export default function Routes() {
     setPlanning(true);
 
     try {
-      const url =
-        `https://router.project-osrm.org/route/v1/driving/` +
-        `${route.start[1]},${route.start[0]};` +
-        `${route.end[1]},${route.end[0]}` +
-        `?overview=full&geometries=geojson`;
-
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (data.code === "Ok" && data.routes?.length) {
-        const calculated = data.routes[0];
-
+      const calculated = await requestRoute({ start: route.start, end: route.end });
+      if (calculated.coordinates?.length) {
         const updatedRoute = {
           ...route,
-          distance: `${(
-            calculated.distance / 1000
-          ).toFixed(1)} km`,
-          eta: `${Math.max(
-            1,
-            Math.round(calculated.duration / 60)
-          )} min`,
-          coordinates:
-            calculated.geometry.coordinates.map(
-              ([lng, lat]) => [lat, lng]
-            ),
+          distance: `${(calculated.distance_m / 1000).toFixed(1)} km`,
+          eta: `${Math.max(1, Math.round(calculated.distance_m / 1000 / 0.7))} min`,
+          roadStatus: calculated.blocked ? "Blocked" : "Clear",
+          certainty: calculated.certainty,
+          coordinates: calculated.coordinates,
         };
 
         setRoutes((prev) =>
