@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BrainCircuit,
   Building2,
@@ -12,6 +12,7 @@ import {
   X,
   Users,
 } from "lucide-react";
+import { getIncidents } from "../api/incidents";
 
 const damageData = [
   {
@@ -145,6 +146,28 @@ export default function DamageAnalysis() {
   const [severity, setSeverity] = useState("ALL");
   const [type, setType] = useState("ALL");
 
+  useEffect(() => {
+    getIncidents().then(({ incidents = [] }) => {
+      setRecords(incidents.map((incident) => ({
+        id: incident.incident_code || incident.id,
+        title: incident.title,
+        location: incident.location,
+        type: `${incident.type || "Unknown"} Damage`,
+        severity: incident.severity === "HIGH" ? "HIGH" : incident.severity || "LOW",
+        confidence: Number(incident.confidence || 0),
+        buildings: Number(incident.buildings || 0),
+        affected: Number(incident.affected_people || 0),
+        structural: incident.ai_damage_level || "Unknown",
+        status: incident.status || "Under Assessment",
+        image: incident.image_url || "/images/flood-incident.jpg",
+        description: incident.description || "Damage assessment pending field verification.",
+        insights: [],
+        recommendation: incident.ai_recommendation || "Review the assessment and deploy resources as required.",
+        certainty: incident.certainty || (Number(incident.confidence || 0) >= 75 ? "confirmed" : "unknown"),
+      })));
+    }).catch((error) => console.error("Damage analysis load error:", error));
+  }, []);
+
   const filteredRecords = useMemo(() => {
     return records.filter((item) => {
       const matchesSearch =
@@ -190,12 +213,12 @@ export default function DamageAnalysis() {
       item.severity === "HIGH"
   ).length;
 
-  const averageConfidence = Math.round(
+  const averageConfidence = records.length ? Math.round(
     records.reduce(
       (sum, item) => sum + item.confidence,
       0
     ) / records.length
-  );
+  ) : 0;
 
   return (
     <div className="legacy-page min-h-screen bg-[#020b13] text-white">
